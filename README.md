@@ -37,7 +37,9 @@ Workflows are configured in `.github/workflows/` to:
 - Run tests and generate reports
 - Create JSON/CSV artifacts
 - Upload logs automatically
-- Generate SARIF security findings
+- Scan code with Bandit & pip-audit
+
+**Single workflow:** `python-analysis.yml` runs on every push/PR to `main`
 
 ### To enable GitHub DevSecOps Features:
 
@@ -50,10 +52,20 @@ Workflows are configured in `.github/workflows/` to:
    - Allow all actions ✓
    - Artifact retention: 30 days
 
-3. **Create NVD API Key** (optional):
-   - Visit https://nvd.nist.gov/developers/request-an-api-key
-   - Store in: Settings → Secrets and variables → Actions
-   - Add as `NVD_API_KEY`
+3. **Go to Actions → Workflows**
+   - Enable "Python Code Analysis & Reports" workflow ✓
+
+## Viewing Reports & Artifacts
+
+After workflow runs:
+1. Go to **Actions** tab → Select latest workflow run
+2. Scroll to **Artifacts** section
+3. Download `analysis-reports.zip` containing:
+   - `test-results.json` - pytest results
+   - `bandit-report.json` - Security issues
+   - `pip-audit-report.json` - Dependency vulnerabilities
+   - `pylint-report.json` - Code quality
+   - `logs/analysis.log` - Execution logs
 
 ## Project Structure
 

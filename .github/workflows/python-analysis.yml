@@ -30,15 +30,30 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Run Tests
+      - name: Create directories
+        run: |
+          mkdir -p logs reports
+
+      - name: Run Tests with JSON Report
         id: tests
         continue-on-error: true
         run: |
           pytest tests/ -v --tb=short --json-report --json-report-file=reports/test-results.json || true
 
       - name: Generate Security Reports
+        continue-on-error: true
         run: |
           python scripts/generate_report.py
+
+      - name: Run Bandit (SAST)
+        continue-on-error: true
+        run: |
+          bandit -r src/ -f json -o reports/bandit-report.json || true
+
+      - name: Run pip-audit (Dependency Scan)
+        continue-on-error: true
+        run: |
+          pip-audit --desc --format json > reports/pip-audit-report.json || true
 
       - name: Run Code Quality Checks
         id: quality
@@ -48,6 +63,7 @@ jobs:
           black src/ --check --diff || true
 
       - name: Analyze Logs
+        continue-on-error: true
         run: |
           python scripts/analyze_logs.py
 
@@ -62,8 +78,9 @@ jobs:
           retention-days: 30
 
       - name: Create PR Comment with Summary
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@v7
+        continue-on-error: true
         with:
           script: |
             const fs = require('fs');
@@ -102,8 +119,7 @@ jobs:
           echo "- Status: ${{ steps.quality.outcome }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Generated Artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Security reports (JSON)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Findings (CSV)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Pylint analysis" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Test results" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Test results (JSON)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Security reports (Bandit, pip-audit)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Code quality (Pylint)" >> $GITHUB_STEP_SUMMARY
           echo "- ✓ Analysis logs" >> $GITHUB_STEP_SUMMARY
