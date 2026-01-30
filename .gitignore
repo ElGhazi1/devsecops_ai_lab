@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs & Reports
+logs/
+*.log
+reports/
+*.html
+*.json
+!.github/
+
+# Data
+data/raw/
+data/processed/
+data/models/
+
+# OS
+.DS_Store
+.env
+.env.local

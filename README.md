@@ -1,57 +1,100 @@
-# DevSecOps AI Lab
+# DevSecOps AI Lab - Automation Testing
 
-Simple AI/ML project with sentiment classification using HuggingFace transformers.
+Simple project for testing Python automation with GitHub Actions, log generation, and artifact management.
 
-## Setup
+## Quick Start
 
 ```bash
+# Clone & setup
+git clone https://github.com/ElGhazi1/devsecops_ai_lab.git
+cd devsecops_ai_lab
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-## Running Locally
+## Local Testing
 
 ```bash
-python -m src.api.main
-```
-
-API will be available at `http://localhost:5000`
-
-## API Endpoints
-
-- **GET** `/health` - Health check
-- **POST** `/predict` - Single text prediction
-  ```json
-  {"text": "This is amazing!"}
-  ```
-- **POST** `/batch-predict` - Multiple texts
-  ```json
-  {"texts": ["text1", "text2"]}
-  ```
-
-## Docker
-
-```bash
-docker-compose up
-```
-
-## Testing
-
-```bash
+# Run tests
 pytest tests/ -v
+
+# Generate reports
+python scripts/generate_report.py
+
+# Check code quality
+pylint src/
+black src/ --check
 ```
 
-## HuggingFace Models
+## GitHub Actions Workflows
 
-**No API key or sign-in required!** Models are automatically downloaded on first use and cached locally. The `distilbert-base-uncased-finetuned-sst-2-english` model is lightweight and runs on CPU.
+Workflows are configured in `.github/workflows/` to:
+- Run tests and generate reports
+- Create JSON/CSV artifacts
+- Upload logs automatically
+- Generate SARIF security findings
 
-## Git Commands to Test
+### To enable GitHub DevSecOps Features:
 
-```bash
-git clone <repo>
-git checkout -b feature/new-feature
-git add .
-git commit -m "message"
-git push origin feature/new-feature
-git pull origin main
+1. **Go to Settings → Code security and analysis**
+   - Enable "Dependency graph" ✓
+   - Enable "Dependabot alerts" ✓
+   - Enable "Dependabot security updates" ✓
+
+2. **Go to Settings → Actions → General**
+   - Allow all actions ✓
+   - Artifact retention: 30 days
+
+3. **Create NVD API Key** (optional):
+   - Visit https://nvd.nist.gov/developers/request-an-api-key
+   - Store in: Settings → Secrets and variables → Actions
+   - Add as `NVD_API_KEY`
+
+## Project Structure
+
+```plaintext
+devsecops_ai_lab/
+├── .github/                # GitHub-specific files
+│   └── workflows/          # GitHub Actions workflows
+├── reports/                # Test and coverage reports
+├── src/                    # Source code
+│   ├── api/                # API-related code
+│   ├── ml/                 # Machine learning models
+│   └── utils/              # Utility functions
+├── tests/                  # Test cases
+│   ├── api/                # API tests
+│   └── ml/                 # ML model tests
+├── .gitignore              # Git ignore file
+├── README.md               # Project documentation
+└── requirements.txt         # Python dependencies
 ```
-# devsecops_ai_lab
+
+## Troubleshooting Common Issues
+
+- **Permission denied (publickey)**:
+  - Ensure your SSH key is added to the ssh-agent and your GitHub account.
+  - Command to add SSH key: `ssh-add ~/.ssh/id_rsa`
+
+- **Repository not found**:
+  - Check if the repository URL is correct.
+  - Ensure you have access to the repository.
+
+- **Docker issues**:
+  - Ensure Docker is installed and running.
+  - For permission issues, consider adding your user to the `docker` group: `sudo usermod -aG docker $USER`
+
+## Resources
+
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- [Python Testing with pytest](https://docs.pytest.org/en/stable/)
+- [Pylint Documentation](https://pylint.pycqa.org/en/latest/)
+- [Black Documentation](https://black.readthedocs.io/en/stable/)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -1,0 +1,10 @@
+model:
+  name: "bert_classifier"
+  huggingface_model: "distilbert-base-uncased-finetuned-sst-2-english"
+  cache_dir: "./models_cache"
+  device: "cpu"
+
+api:
+  host: "0.0.0.0"
+  port: 5000
+  debug: false
