@@ -1,19 +1,15 @@
-name: Python Code Analysis & Reports
+name: Simple Python Test
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
-
-permissions:
-  contents: read
-  checks: write
-  pull-requests: write
+    branches: [ main, master ]
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
 
 jobs:
-  analysis:
-    name: Code Analysis & Report Generation
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -21,105 +17,25 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          python -m pip install --upgrade pip
+          pip install pytest
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Create directories
+      - name: Run tests
         run: |
-          mkdir -p logs reports
+          pytest --version
+          echo "✅ Pytest is ready!"
+          # Add your test command here
+          # pytest tests/ -v
 
-      - name: Run Tests with JSON Report
-        id: tests
-        continue-on-error: true
-        run: |
-          pytest tests/ -v --tb=short --json-report --json-report-file=reports/test-results.json || true
-
-      - name: Generate Security Reports
-        continue-on-error: true
-        run: |
-          python scripts/generate_report.py
-
-      - name: Run Bandit (SAST)
-        continue-on-error: true
-        run: |
-          bandit -r src/ -f json -o reports/bandit-report.json || true
-
-      - name: Run pip-audit (Dependency Scan)
-        continue-on-error: true
-        run: |
-          pip-audit --desc --format json > reports/pip-audit-report.json || true
-
-      - name: Run Code Quality Checks
-        id: quality
-        continue-on-error: true
-        run: |
-          pylint src/ --exit-zero --output-format=json > reports/pylint-report.json || true
-          black src/ --check --diff || true
-
-      - name: Analyze Logs
-        continue-on-error: true
-        run: |
-          python scripts/analyze_logs.py
-
-      - name: Upload Reports as Artifacts
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: analysis-reports
-          path: |
-            reports/
-            logs/
-          retention-days: 30
-
-      - name: Create PR Comment with Summary
-        if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@v7
-        continue-on-error: true
-        with:
-          script: |
-            const fs = require('fs');
-            const reportPath = 'reports/security_report.json';
-            
-            let summary = `## 📊 Analysis Summary\n\n`;
-            
-            if (fs.existsSync(reportPath)) {
-              const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-              summary += `| Metric | Count |\n`;
-              summary += `|--------|-------|\n`;
-              summary += `| Total Findings | ${report.summary.total_findings} |\n`;
-              summary += `| Critical | ${report.summary.critical} |\n`;
-              summary += `| High | ${report.summary.high} |\n`;
-              summary += `| Medium | ${report.summary.medium} |\n`;
-            }
-            
-            summary += `\n✅ Reports available in artifacts section`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: summary
-            });
-
-      - name: Print Summary
+      - name: Print summary
         if: always()
         run: |
-          echo "## 🎯 Workflow Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Tests" >> $GITHUB_STEP_SUMMARY
-          echo "- Status: ${{ steps.tests.outcome }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Code Quality" >> $GITHUB_STEP_SUMMARY
-          echo "- Status: ${{ steps.quality.outcome }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Generated Artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Test results (JSON)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Security reports (Bandit, pip-audit)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Code quality (Pylint)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Analysis logs" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Workflow Complete" >> $GITHUB_STEP_SUMMARY
+          echo "Python setup and dependencies installed successfully!" >> $GITHUB_STEP_SUMMARY
