@@ -1,41 +1,62 @@
-name: Simple Python Test
+name: General Analysis & Tests
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main, master ]
-  workflow_dispatch:  # Allows manual trigger from GitHub UI
+    branches: [ main ]
 
 jobs:
-  test:
-    name: Run Tests
+  security-scan:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install bandit safety pylint pytest
+        pip install -r requirements.txt
+    
+    # 1️⃣ SAST - Static Application Security Testing
+    - name: Run Bandit (Security Linter)
+      run: bandit -r src/ -f json -o bandit-report.json
+      continue-on-error: true
+    
+    # 2️⃣ Dependency Vulnerability Scan
+    - name: Run Safety Check
+      run: safety check --json > safety-report.json
+      continue-on-error: true
+    
+    # 3️⃣ Code Quality
+    - name: Run Pylint
+      run: pylint src/ --output-format=json > pylint-report.json
+      continue-on-error: true
+    
+    # 4️⃣ Unit Tests with Coverage
+    - name: Run Tests
+      run: |
+        pytest tests/ --cov=src --cov-report=xml
+    
+    # 5️⃣ Upload reports
+    - name: Upload Security Reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+          pylint-report.json
+          
+    - name: Print summary
+      if: always()
+      run: |
+        echo "## ✅ Workflow Complete" >> $GITHUB_STEP_SUMMARY
+        echo "Python setup and dependencies installed successfully!" >> $GITHUB_STEP_SUMMARY
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pytest
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
-      - name: Run tests
-        run: |
-          pytest --version
-          echo "✅ Pytest is ready!"
-          # Add your test command here
-          # pytest tests/ -v
-
-      - name: Print summary
-        if: always()
-        run: |
-          echo "## ✅ Workflow Complete" >> $GITHUB_STEP_SUMMARY
-          echo "Python setup and dependencies installed successfully!" >> $GITHUB_STEP_SUMMARY
+      
