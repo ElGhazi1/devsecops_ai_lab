@@ -41,12 +41,10 @@ env/
 
 # Logs
 *.log
-logs/
-
-# Test coverage
-htmlcov/
 .coverage
-.pytest_cache/
+htmlcov/
+security-*.json
+triage-*.json
 
 # Docker
 docker-compose.override.yml

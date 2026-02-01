@@ -174,6 +174,18 @@ devsecops_ai_lab/
 └── requirements.txt         # Python dependencies
 ```
 
+## GitHub Secrets / Variables to add for automated forwarding
+- NVD_API_KEY
+- SIEM_URL
+- SIEM_API_KEY
+- THEHIVE_URL
+- THEHIVE_API_KEY
+- MISP_URL
+- MISP_API_KEY
+- SLACK_WEBHOOK
+- S3_ARTIFACT_BUCKET (optional)
+- ELK_URL, ELK_API_KEY (optional)
+
 ## Troubleshooting Common Issues
 
 - **Permission denied (publickey)**:

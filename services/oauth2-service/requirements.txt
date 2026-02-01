@@ -1,8 +1,8 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-python-jose[cryptography]==3.3.0
+python-jose[cryptography]>=3.3.0  # use cryptography backend to avoid algorithm confusion; update if security advisory suggests newer
 passlib[bcrypt]==1.7.4
-python-multipart==0.0.6
+python-multipart>=0.0.6           # upgrade to fixed versions for ReDoS / arbitrary-write issues
 sqlalchemy==2.0.23
 psycopg2-binary==2.9.9
 pydantic==2.5.0

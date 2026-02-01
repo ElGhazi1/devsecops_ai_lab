@@ -4,17 +4,50 @@ from typing import List
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import os
+import sys
 
 app = FastAPI(title="LLM/NLP Threat Detector", version="1.0.0")
 
-MODEL_PATH = os.getenv("MODEL_PATH", "/app/models/bert_model")
+# Prevent unsafe local model deserialization by default
+DISABLE_LOCAL_MODEL = os.getenv("DISABLE_LOCAL_MODEL", "true").lower() in ("1", "true", "yes")
+MODEL_PATH = os.getenv("MODEL_PATH", "")  # allowed only if explicitly enabled
+ALLOWED_MODEL_PREFIX = os.getenv("ALLOWED_MODEL_PREFIX", "/app/models/")  # optional allowlist
 
-# Load BERT model and tokenizer
-tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-model = AutoModelForSequenceClassification.from_pretrained(
-    "bert-base-uncased", num_labels=2
-)
-model.eval()
+
+def load_model_safe(model_identifier: str = "bert-base-uncased"):
+    """
+    Safe model loading:
+     - prefer hub models (hf) via AutoModel.from_pretrained
+     - disallow arbitrary local torch.load unless explicitly enabled and within ALLOWED_MODEL_PREFIX
+    """
+    if DISABLE_LOCAL_MODEL and MODEL_PATH:
+        print("⚠️ Local model loading disabled by policy. Set DISABLE_LOCAL_MODEL=false to override (not recommended).")
+        raise RuntimeError("Local model loading disabled for security")
+    if MODEL_PATH:
+        # Only allow local models from trusted folder
+        if not os.path.abspath(MODEL_PATH).startswith(os.path.abspath(ALLOWED_MODEL_PREFIX)):
+            raise RuntimeError("Local model path not in allowlist")
+        # safe loading via transformers API if possible (avoid torch.load)
+        try:
+            tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
+            model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH, num_labels=2)
+            return tokenizer, model
+        except Exception as e:
+            print(f"❌ Failed to load local model safely: {e}")
+            raise
+    # Default: load from Hugging Face hub (safe path)
+    tokenizer = AutoTokenizer.from_pretrained(model_identifier)
+    model = AutoModelForSequenceClassification.from_pretrained(model_identifier, num_labels=2)
+    return tokenizer, model
+
+
+# Replace previous direct loads with safe loader
+try:
+    tokenizer, model = load_model_safe(os.getenv("MODEL_NAME", "bert-base-uncased"))
+    model.eval()
+except Exception as e:
+    print(f"Model load failed: {e}")
+    sys.exit(1)
 
 
 class ThreatDetectionRequest(BaseModel):

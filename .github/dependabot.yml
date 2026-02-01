@@ -1,0 +1,61 @@
+version: 2
+updates:
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    allow:
+      - dependency-type: "security"  # Only security updates
+  
+  - package-ecosystem: "pip"
+    directory: "/services/oauth2-service"
+    schedule:
+      interval: "daily"
+    allow:
+      - dependency-type: "security"
+  
+  - package-ecosystem: "pip"
+    directory: "/services/api-backend"
+    schedule:
+      interval: "daily"
+    allow:
+      - dependency-type: "security"
+  
+  - package-ecosystem: "pip"
+    directory: "/services/llm-nlp-service"
+    schedule:
+      interval: "daily"
+    allow:
+      - dependency-type: "security"
+  
+  # Docker base images
+  - package-ecosystem: "docker"
+    directory: "/services/oauth2-service"
+    schedule:
+      interval: "weekly"
+    allow:
+      - dependency-type: "security"
+  
+  - package-ecosystem: "docker"
+    directory: "/services/api-backend"
+    schedule:
+      interval: "weekly"
+    allow:
+      - dependency-type: "security"
+  
+  - package-ecosystem: "docker"
+    directory: "/services/llm-nlp-service"
+    schedule:
+      interval: "weekly"
+    allow:
+      - dependency-type: "security"
+
+# Grouping for easier review
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    grouped-updates:
+      - dependency-type: "development"
+        update-types: ["minor", "patch"]
