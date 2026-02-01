@@ -9,128 +9,149 @@ on:
     - cron: '0 2 * * 1'
 
 permissions:
-  contents: read
-  security-events: write
-  checks: write
+  contents: read: '3.10'
+  security-events: write'
+  checks: writeORE: '7.0'
   pull-requests: write
-
-jobs:
-  bandit:
+permissions:
+jobs:tents: read
+  bandit:y-events: write
     name: Bandit - Python Security Scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v4
-        with:
+  bandit:
+      - uses: actions/setup-python@v4an
+        with:ubuntu-latest
           python-version: '3.10'
-          cache: 'pip'
+          cache: 'pip'checkout@v4
 
-      - name: Install Bandit
+      - name: Install Banditpython@v4
         run: pip install bandit[toml]==1.7.5
-
+          python-version: ${{ env.PYTHON_VERSION }}
       - name: Run Bandit on services
         run: |
           bandit -r services/ \
-            -f json \
+            -f json \all bandit[toml]==${{ env.BANDIT_VERSION }}
             -o bandit-report.json \
-            --skip B101,B601 \
+            --skip B101,B601 \rvices
             || true
-
+          bandit -r services/ \
       - name: Upload Bandit Report
         uses: actions/upload-artifact@v4
-        if: always()
-        with:
+        if: always()101,B601 \
+        with:| true
           name: bandit-report
           path: bandit-report.json
-          retention-days: 30
-
+          retention-days: 30-artifact@v4
+        if: always()
       - name: Comment PR with Results
         if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@v7
-        with:
+        with:ention-days: 30
           script: |
             const fs = require('fs');
-            try {
+            try {b.event_name == 'pull_request' && always()
               const report = JSON.parse(fs.readFileSync('bandit-report.json', 'utf8'));
               const critical = report.results.filter(r => r.severity === 'HIGH');
-              
+              pt: |
               if (critical.length > 0) {
                 const comment = `## 🔒 Bandit Security Scan\n⚠️ **${critical.length}** critical issues found\n\n${critical.slice(0, 5).map(i => `- **${i.test_id}**: ${i.issue_text}`).join('\n')}`;
-                github.rest.issues.createComment({
-                  issue_number: context.issue.number,
+                github.rest.issues.createComment({eSync('bandit-report.json', 'utf8'));
+                  issue_number: context.issue.number,r => r.severity === 'HIGH');
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  body: comment
-                });
-              }
-            } catch (e) {
+                  body: comment `## 🔒 Bandit Security Scan\n⚠️ **${critical.length}** critical issues found\n\n${critical.slice(0, 5).map(i => `- **${i.test_id}**: ${i.issue_text}`).join('\n')}`;
+                });hub.rest.issues.createComment({
+              }   issue_number: context.issue.number,
+            } catch (e) {context.repo.owner,
               console.log('No critical issues found');
-            }
-
-  semgrep:
+            }     body: comment
+                });
+  semgrep:    }
     name: Semgrep - Multi-Language SAST
-    runs-on: ubuntu-latest
-    steps:
+    runs-on: ubuntu-latest'No critical issues found');
+    steps:  }
       - uses: actions/checkout@v4
+  semgrep:
+      - name: Run Semgrep-Language SAST
+        id: semgrep_scan
+        continue-on-error: true
+        run: |s/checkout@v4
+          pip install semgrep
+          semgrep --config=p/security-audit \
+                  --config=p/owasp-top-ten \tocorp/semgrep-action@v1
+                  --config=p/python \
+                  --sarif --output=semgrep.sarif \          config: >-
+                  services/ || echo "⚠️ Semgrep completed with findings"
 
-      - name: Run Semgrep
-        uses: returntocorp/semgrep-action@v1
-        with:
-          config: >-
-            p/security-audit
-            p/owasp-top-ten
-            p/python
-          generateSarif: true
-
-      - name: Upload SARIF to Security Tab
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: semgrep.sarif
+      - name: Verify SARIF generation
+        id: check_sariferateSarif: true
+        run: |
+          if [ -f semgrep.sarif ]; thento Security Tab
+            echo "sarif_exists=true" >> $GITHUB_OUTPUT        uses: github/codeql-action/upload-sarif@v4
+            echo "✅ SARIF file generated"
+          else
+            echo "sarif_exists=false" >> $GITHUB_OUTPUT: semgrep.sarif
+            echo "⚠️ No SARIF - creating empty file"egory: semgrep
+            echo '{"version":"2.1.0","$schema":"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json","runs":[]}' > semgrep.sarif
+          fi JSON
+-artifact@v4
+      - name: Upload SARIF to Security Tab        if: always()
+        uses: github/codeql-action/upload-sarif@v4ith:
+        if: always() && steps.check_sarif.outputs.sarif_exists == 'true'
+        with:on
+          sarif_file: semgrep.sarifretention-days: 30
           category: semgrep
+        continue-on-error: true  pylint:
 
-      - name: Upload Semgrep JSON
+      - name: Upload JSON artifactubuntu-latest
         uses: actions/upload-artifact@v4
-        if: always()
+        if: always()checkout@v4
         with:
-          name: semgrep-report
-          path: semgrep.json
-          retention-days: 30
+          name: semgrep-reportpython@v4
+          path: semgrep.sarif
+          retention-days: 30          python-version: ${{ env.PYTHON_VERSION }}
+        continue-on-error: true
 
   pylint:
     name: Pylint - Code Quality
     runs-on: ubuntu-latest
-    steps:
+    steps:Install service dependencies
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v4
-        with:
+          for service in services/*/; do
+      - uses: actions/setup-python@v4rvice/requirements.txt" ]; then
+        with:pip install -r "$service/requirements.txt" || true
           python-version: '3.10'
           cache: 'pip'
 
       - name: Install Pylint
         run: pip install pylint
-
-      - name: Install service dependencies
-        run: |
-          for service in services/*/; do
-            if [ -f "$service/requirements.txt" ]; then
-              pip install -r "$service/requirements.txt" || true
-            fi
-          done
-
-      - name: Run Pylint
-        run: |
           pylint services/**/*.py \
-            --disable=C0111,C0103,R0903,W0212 \
-            --fail-under=7.0 \
-            --exit-zero \
-            > pylint-report.txt || true
+      - name: Install service dependenciesR0903,W0212 \
+        run: |MIN_SCORE }} \
+          for service in services/*/; doero \
+            if [ -f "$service/requirements.txt" ]; then pylint-report.txt || true
+              pip install -r "$service/requirements.txt" || true
+            fit
+          done-artifact@v4
 
-      - name: Upload Pylint Report
-        uses: actions/upload-artifact@v4
-        if: always()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          retention-days: 30          path: pylint-report.txt          name: pylint-report        with:        if: always()        uses: actions/upload-artifact@v4      - name: Upload Pylint Report            > pylint-report.txt || true            --exit-zero \            --fail-under=7.0 \            --disable=C0111,C0103,R0903,W0212 \          pylint services/**/*.py \        run: |      - name: Run Pylint        if: always()
         with:
           name: pylint-report
           path: pylint-report.txt

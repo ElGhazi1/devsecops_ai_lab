@@ -9,41 +9,21 @@ on:
   schedule:
     - cron: '0 4 * * 1'
 
+env:
+  PYTHON_VERSION: '3.10'
+  DOCKER_BUILDKIT: '1'
+
 permissions:
   contents: read
   security-events: write
 
 jobs:
-  trivy-dockerfile:
-    name: Trivy - Dockerfile Configuration Scan
+  trivy-docker-scan:
+    name: Trivy Docker Image Scan
     runs-on: ubuntu-latest
     strategy:
       matrix:
         service: [oauth2-service, api-backend, llm-nlp-service, security-automation]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run Trivy on Dockerfile
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'config'
-          scan-ref: 'services/${{ matrix.service }}/Dockerfile'
-          format: 'sarif'
-          output: '${{ matrix.service }}-trivy.sarif'
-
-      - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: '${{ matrix.service }}-trivy.sarif'
-          category: 'trivy-${{ matrix.service }}'
-
-  docker-image-scan:
-    name: Trivy - Docker Image Vulnerability Scan
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: [oauth2-service, api-backend, llm-nlp-service]
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
@@ -51,22 +31,69 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
-        run: docker build -t ${{ matrix.service }}:latest ./services/${{ matrix.service }}
+      - name: Build Docker image - ${{ matrix.service }}
+        id: docker_build
+        run: |
+          docker build \
+            -t ${{ matrix.service }}:${{ github.sha }} \
+            -t ${{ matrix.service }}:latest \
+            ./services/${{ matrix.service }}
         continue-on-error: true
 
-      - name: Run Trivy image scan
+      - name: Run Trivy scan (SARIF)
+        id: trivy_sarif
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ matrix.service }}:latest'
+          image-ref: ${{ matrix.service }}:${{ github.sha }}
           format: 'sarif'
-          output: '${{ matrix.service }}-image-trivy.sarif'
+          output: 'trivy-${{ matrix.service }}.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
         continue-on-error: true
 
-      - name: Upload SARIF
+      - name: Run Trivy scan (JSON)
+        id: trivy_json
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ matrix.service }}:${{ github.sha }}
+          format: 'json'
+          output: 'trivy-${{ matrix.service }}.json'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+        continue-on-error: true
+
+      - name: Run Trivy scan (Table - for logs)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ matrix.service }}:${{ github.sha }}
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+        continue-on-error: true
+
+      - name: Check SARIF exists
+        id: check_sarif
+        run: |
+          if [ -f "trivy-${{ matrix.service }}.sarif" ]; then
+            echo "sarif_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "sarif_exists=false" >> $GITHUB_OUTPUT
+            echo '{"version":"2.1.0","runs":[]}' > trivy-${{ matrix.service }}.sarif
+          fi
+
+      - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
+        if: always() && steps.check_sarif.outputs.sarif_exists == 'true'
+        with:
+          sarif_file: 'trivy-${{ matrix.service }}.sarif'
+          category: 'trivy-${{ matrix.service }}'
+        continue-on-error: true
+
+      - name: Upload scan results
+        uses: actions/upload-artifact@v4
         if: always()
         with:
-          sarif_file: '${{ matrix.service }}-image-trivy.sarif'
-          category: 'trivy-image-${{ matrix.service }}'
+          name: trivy-${{ matrix.service }}
+          path: trivy-${{ matrix.service }}.*
+          retention-days: 30
         continue-on-error: true

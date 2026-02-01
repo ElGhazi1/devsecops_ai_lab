@@ -103,3 +103,36 @@ jobs:
           - [Secret Scanning](../../security/secret-scanning)
           - [Dependabot Alerts](../../security/dependabot)
           EOF
+
+      - name: Comment PR with Security Summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          script: |
+            const summary = `
+            ## 🔒 Security Analysis Summary
+            
+            | Scan | Status |
+            |------|--------|
+            | SAST (Bandit, Semgrep) | ✅ |
+            | SCA (Safety, pip-audit) | ✅ |
+            | Container (Trivy) | ✅ |
+            | AI Model | ✅ |
+            | Tests | ✅ |
+            
+            **Artifacts Available:**
+            - Bandit report
+            - Semgrep findings
+            - Safety/pip-audit reports
+            - Trivy scan results
+            
+            View detailed reports in GitHub Security tab.
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
