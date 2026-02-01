@@ -1,0 +1,127 @@
+name: ✅ Tests & Code Quality
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  test:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres-oauth:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: oauth_user
+          POSTGRES_PASSWORD: oauth_pass
+          POSTGRES_DB: oauth_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      postgres-api:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: api_user
+          POSTGRES_PASSWORD: api_pass
+          POSTGRES_DB: api_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5433:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install all dependencies
+        run: |
+          for service in services/*/; do
+            if [ -f "$service/requirements.txt" ]; then
+              pip install -r "$service/requirements.txt"
+            fi
+          done
+          pip install pytest pytest-cov
+
+      - name: Run tests
+        run: |
+          pytest tests/ -v --cov=services --cov-report=xml
+        env:
+          DATABASE_URL_OAUTH: postgresql://oauth_user:oauth_pass@localhost:5432/oauth_db
+          DATABASE_URL_API: postgresql://api_user:api_pass@localhost:5433/api_db
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./coverage.xml
+
+  formatting:
+    name: Code Formatting & Linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install tools
+        run: pip install black isort flake8 pylint
+
+      - name: Black format check
+        run: black --check services/ scripts/ tests/
+        continue-on-error: true
+
+      - name: isort import check
+        run: isort --check-only services/ scripts/ tests/
+        continue-on-error: true
+
+      - name: Flake8 lint
+        run: flake8 services/ scripts/ tests/ --max-line-length=120
+        continue-on-error: true
+
+  docker-compose:
+    name: Docker Compose Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate docker-compose
+        run: docker-compose config
+
+      - name: Build services
+        run: docker-compose build
+
+      - name: Start services
+        run: |
+          docker-compose up -d
+          sleep 10
+
+      - name: Health check
+        run: |
+          docker-compose exec -T oauth2-service curl -f http://localhost:8000/health || exit 1
+          docker-compose exec -T api-backend curl -f http://localhost:8000/health || exit 1
+          docker-compose exec -T llm-nlp-service curl -f http://localhost:8000/health || exit 1
+
+      - name: Stop services
+        if: always()
+        run: docker-compose down -v

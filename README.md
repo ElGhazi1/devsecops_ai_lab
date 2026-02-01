@@ -1,74 +1,128 @@
-# DevSecOps AI Lab - Automation Testing
+# 🔒 DevSecOps + AI Lab - Professional Security Pipeline
 
-Simple project for testing Python automation with GitHub Actions, log generation, and artifact management.
+> Enterprise-grade DevSecOps project with AI/ML threat detection, microservices architecture, and automated security scanning.
 
-## Quick Start
+[![Security - SAST](https://github.com/yourusername/devsecops_ai_lab/actions/workflows/security-sast.yml/badge.svg)](../../actions/workflows/security-sast.yml)
+[![Security - SCA](https://github.com/yourusername/devsecops_ai_lab/actions/workflows/security-sca.yml/badge.svg)](../../actions/workflows/security-sca.yml)
+[![Tests & Quality](https://github.com/yourusername/devsecops_ai_lab/actions/workflows/test-and-quality.yml/badge.svg)](../../actions/workflows/test-and-quality.yml)
+
+## 🎯 Overview
+
+This project demonstrates a **complete DevSecOps pipeline** with:
+
+- ✅ **4 Microservices** (OAuth2, FastAPI, LLM/NLP, Security Automation)
+- ✅ **6 GitHub Actions Workflows** (SAST, SCA, Container, AI, Tests, Reporting)
+- ✅ **BERT-based Threat Detection** (Prompt injection, SQL injection detection)
+- ✅ **Multi-layer Security Scanning** (Bandit, Semgrep, Safety, Trivy)
+- ✅ **Automated Reporting** (JSON, HTML, SARIF formats)
+- ✅ **Pre-commit Security Hooks** (Black, isort, Flake8, Bandit)
+
+## 🏗️ Architecture
+
+### Microservices
+- **OAuth2 Service** (Port 8001): JWT token management
+- **API Backend** (Port 8002): FastAPI REST service with OAuth2 integration
+- **LLM/NLP Service** (Port 8003): BERT-based threat detector
+- **Security Automation**: Scanning & reporting orchestration
+- **PostgreSQL (x2)**: Separate databases for OAuth2 and API
+
+### Security Pipeline
+1. **SAST**: Bandit + Semgrep
+2. **SCA**: Safety + pip-audit
+3. **Container**: Trivy
+4. **AI Model**: BERT integrity checks
+5. **Reporting**: Consolidated JSON/HTML reports
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Docker & Docker Compose
+- Git
+- Python 3.10+
+
+### Setup
 
 ```bash
-# Clone & setup
-git clone https://github.com/ElGhazi1/devsecops_ai_lab.git
-cd devsecops_ai_lab
+# Clone repo
+cd /home/debianuser/ai_devsecops/ai_labs/devsecops_ai_lab
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Start services
+docker-compose up -d
 
-# Install dependencies
-pip install -r requirements.txt
+# Verify health
+curl http://localhost:8001/health  # OAuth2
+curl http://localhost:8002/health  # API
+curl http://localhost:8003/health  # LLM
 ```
 
-## Local Testing
+### Running Workflows Locally
 
 ```bash
-# Run tests
-pytest tests/ -v
+# Install act (GitHub Actions locally)
+brew install act
 
-# Generate reports
-python scripts/generate_report.py
+# Run security workflow
+act push -j bandit
 
-# Check code quality
-pylint src/
-black src/ --check
+# Run all tests
+act push -j test
 ```
 
-## GitHub Actions Workflows
+## 📊 Workflows
 
-Workflows are configured in `.github/workflows/` to:
-- Run tests and generate reports
-- Create JSON/CSV artifacts
-- Upload logs automatically
-- Scan code with Bandit & pip-audit
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `security-sast.yml` | Push/PR | Python & multi-lang SAST |
+| `security-sca.yml` | requirements.txt changes | Dependency vulnerabilities |
+| `security-container.yml` | Dockerfile changes | Container image scanning |
+| `ai-model-integrity.yml` | LLM service changes | Model validation |
+| `test-and-quality.yml` | Push/PR | Unit tests + code quality |
+| `security-report.yml` | All security scans complete | Consolidated report |
 
-**Single workflow:** `python-analysis.yml` runs on every push/PR to `main`
+## 📈 Accessing Reports
 
-### To enable GitHub DevSecOps Features:
+### GitHub UI
+1. **Actions** tab → Select workflow
+2. **Artifacts** section → Download reports
+3. **Security** tab → View SARIF findings
 
-1. **Go to Settings → Code security and analysis**
-   - Enable "Dependency graph" ✓
-   - Enable "Dependabot alerts" ✓
-   - Enable "Dependabot security updates" ✓
+### Report Types
+- `security-report.json` - Consolidated findings
+- `bandit-report.json` - Python security issues
+- `semgrep-report.json` - Pattern matches
+- `safety-report.json` - Dependency vulnerabilities
+- `*-trivy.sarif` - Container vulnerabilities
 
-2. **Go to Settings → Actions → General**
-   - Allow all actions ✓
-   - Artifact retention: 30 days
+## 🤖 AI Threat Detection
 
-3. **Go to Actions → Workflows**
-   - Enable "Python Code Analysis & Reports" workflow ✓
+### BERT Model
+- **Architecture**: Bidirectional Encoder (12 layers)
+- **Task**: Binary classification (safe/threat)
+- **Inputs**: Prompts, payloads, API requests
+- **Outputs**: Threat probability + classification
 
-## Viewing Reports & Artifacts
+### API Endpoint
+```bash
+curl -X POST http://localhost:8003/detect-threat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "SELECT * FROM users",
+    "threshold": 0.7
+  }'
+```
 
-After workflow runs:
-1. Go to **Actions** tab → Select latest workflow run
-2. Scroll to **Artifacts** section
-3. Download `analysis-reports.zip` containing:
-   - `test-results.json` - pytest results
-   - `bandit-report.json` - Security issues
-   - `pip-audit-report.json` - Dependency vulnerabilities
-   - `pylint-report.json` - Code quality
-   - `logs/analysis.log` - Execution logs
+## 🔐 Security Features
 
-## Project Structure
+- ✅ OAuth2/JWT authentication
+- ✅ Role-based access control (RBAC)
+- ✅ Automated vulnerability scanning
+- ✅ AI-powered threat detection
+- ✅ Encrypted credentials (GitHub Secrets)
+- ✅ Pre-commit security hooks
+- ✅ Container vulnerability scanning
+- ✅ Dependency audit trails
 
+## 📁 Project Structure
 ```plaintext
 devsecops_ai_lab/
 ├── .github/                # GitHub-specific files

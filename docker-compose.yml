@@ -195,6 +195,123 @@ services:
     networks:
       - devsecops-net
 
+  # OAuth2 Service
+  oauth2-service:
+    build: ./services/oauth2-service
+    container_name: oauth2-service
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql://oauth_user:oauth_pass@postgres-oauth:5432/oauth_db
+      SECRET_KEY: ${OAUTH2_SECRET_KEY:-your-secret-key-change-in-prod}
+    depends_on:
+      postgres-oauth:
+        condition: service_healthy
+    volumes:
+      - ./services/oauth2-service:/app
+    networks:
+      - devsecops-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  api-backend:
+    build: ./services/api-backend
+    container_name: api-backend
+    ports:
+      - "8002:8000"
+    environment:
+      DATABASE_URL: postgresql://api_user:api_pass@postgres-api:5432/api_db
+      OAUTH2_URL: http://oauth2-service:8000
+    depends_on:
+      postgres-api:
+        condition: service_healthy
+      oauth2-service:
+        condition: service_healthy
+    volumes:
+      - ./services/api-backend:/app
+    networks:
+      - devsecops-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # LLM/NLP Service (BERT Threat Detector)
+  llm-nlp-service:
+    build: ./services/llm-nlp-service
+    container_name: llm-nlp-service
+    ports:
+      - "8003:8000"
+    environment:
+      MODEL_PATH: /app/models/bert_model
+    volumes:
+      - ./services/llm-nlp-service:/app
+      - llm-models-cache:/app/models
+    networks:
+      - devsecops-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # Security Automation Service
+  security-automation:
+    build: ./services/security-automation
+    container_name: security-automation
+    environment:
+      ARTIFACT_DIR: /artifacts
+      REPORT_DIR: /reports
+    volumes:
+      - ./services/security-automation:/app
+      - ./artifacts:/artifacts
+      - ./reports:/reports
+    networks:
+      - devsecops-network
+    profiles:
+      - tools
+
+  # PostgreSQL for OAuth2
+  postgres-oauth:
+    image: postgres:15-alpine
+    container_name: postgres-oauth
+    environment:
+      POSTGRES_USER: oauth_user
+      POSTGRES_PASSWORD: oauth_pass
+      POSTGRES_DB: oauth_db
+    volumes:
+      - postgres-oauth-data:/var/lib/postgresql/data
+    networks:
+      - devsecops-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oauth_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL for API Backend
+  postgres-api:
+    image: postgres:15-alpine
+    container_name: postgres-api
+    environment:
+      POSTGRES_USER: api_user
+      POSTGRES_PASSWORD: api_pass
+      POSTGRES_DB: api_db
+    volumes:
+      - postgres-api-data:/var/lib/postgresql/data
+    networks:
+      - devsecops-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U api_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
   redis_data:
@@ -202,7 +319,12 @@ volumes:
   elasticsearch_data:
   prometheus_data:
   grafana_data:
+  postgres-oauth-data:
+  postgres-api-data:
+  llm-models-cache:
 
 networks:
   devsecops-net:
+    driver: bridge
+  devsecops-network:
     driver: bridge

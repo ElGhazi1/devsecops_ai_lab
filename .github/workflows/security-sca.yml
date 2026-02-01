@@ -1,0 +1,166 @@
+name: 📦 Security - SCA (Dependencies)
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - '**/requirements.txt'
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 3 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  safety:
+    name: Safety - Python Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Safety
+        run: pip install safety==2.3.5
+
+      - name: Scan requirements.txt files
+        run: |
+          mkdir -p safety-reports
+          for req_file in services/*/requirements.txt; do
+            service_name=$(dirname $req_file | xargs basename)
+            echo "Scanning $service_name..."
+            safety check -r "$req_file" --json > "safety-reports/$service_name.json" || true
+          done
+
+      - name: Upload Safety Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: safety-reports
+          path: safety-reports/
+          retention-days: 30
+
+  pip-audit:
+    name: pip-audit - Alternative Dependency Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Scan all requirements
+        run: |
+          mkdir -p pip-audit-reports
+          for req_file in services/*/requirements.txt; do
+            service_name=$(dirname $req_file | xargs basename)
+            echo "Auditing $service_name..."
+            pip-audit -r "$req_file" --format json > "pip-audit-reports/$service_name.json" || true
+          done
+
+      - name: Upload pip-audit Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pip-audit-reports
+          path: pip-audit-reports/
+          retention-days: 30
+
+  dependency-check:
+    name: OWASP Dependency-Check - CVE Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run OWASP Dependency-Check
+        uses: dependency-check/DependencyCheck_Action@main
+        with:
+          project: 'devsecops-ai-lab'
+          path: '.'
+          format: 'SARIF'
+          args: >
+            --enableExperimental
+            --nvdApiKey ${{ secrets.NVD_API_KEY }}
+            --failOnCVSS 7
+
+      - name: Upload Dependency-Check SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'reports/dependency-check-report.sarif'
+          category: 'dependency-check'
+
+      - name: Upload Dependency-Check JSON
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-check-report
+          path: reports/dependency-check-report.json
+          retention-days: 30
+
+  nvd-scanner:
+    name: NVD Direct Scan - Vulnerability Database
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install vulnerability scanner
+        run: pip install pip-audit safety
+
+      - name: Scan with NVD context
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          mkdir -p nvd-reports
+          
+          echo "🔍 Scanning all requirements files against NVD..."
+          for req_file in services/*/requirements.txt; do
+            service_name=$(dirname $req_file | xargs basename)
+            echo "  → Scanning $service_name..."
+            
+            # pip-audit with NVD
+            pip-audit -r "$req_file" \
+              --desc \
+              --format json \
+              > "nvd-reports/$service_name-nvd.json" || true
+          done
+          
+          echo "✅ NVD scanning complete"
+
+      - name: Upload NVD Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nvd-reports
+          path: nvd-reports/
+          retention-days: 30
+
+      - name: Check for Critical CVEs
+        run: |
+          critical_found=0
+          for report in nvd-reports/*.json; do
+            if grep -q '"critical"' "$report" 2>/dev/null; then
+              echo "⚠️  CRITICAL CVEs found in $report"
+              critical_found=1
+            fi
+          done
+          
+          if [ $critical_found -eq 1 ]; then
+            echo "❌ Critical vulnerabilities detected!"
+            exit 1
+          fi
+        continue-on-error: true

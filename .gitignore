@@ -4,33 +4,62 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
-venv/
-.venv
-*.egg-info/
-dist/
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
+.DS_Store
 
-# Logs & Reports
-logs/
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
 *.log
-reports/
-*.html
-*.json
-!.github/
+logs/
 
-# Data
-data/raw/
-data/processed/
-data/models/
+# Test coverage
+htmlcov/
+.coverage
+.pytest_cache/
+
+# Docker
+docker-compose.override.yml
+
+# Artifacts
+artifacts/
+reports/
+*.sarif
+cve-reports/
+safety-reports/
+pip-audit-reports/
+nvd-reports/
 
 # OS
 .DS_Store
-.env
-.env.local
+Thumbs.db

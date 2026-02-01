@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-check.2.8.xsd">
+    <!-- Example: Suppress specific CVE if it's false positive or accepted risk -->
+    <!-- 
+    <suppress>
+        <notes><![CDATA[
+        Suppression notes here
+        ]]></notes>
+        <cve>CVE-2021-12345</cve>
+    </suppress>
+    -->
+    
+    <!-- Suppress development dependencies if needed -->
+    <!--
+    <suppress>
+        <notes><![CDATA[
+        Development/testing only
+        ]]></notes>
+        <packageUrl regex="true">pkg:pypi/pytest.*</packageUrl>
+    </suppress>
+    -->
+</suppressions>

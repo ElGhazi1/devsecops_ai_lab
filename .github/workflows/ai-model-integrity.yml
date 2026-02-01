@@ -1,0 +1,86 @@
+name: 🤖 AI - Model Integrity & Tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'services/llm-nlp-service/**'
+      - 'notebooks/**'
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  model-validation:
+    name: BERT Model Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install torch transformers pytest pytest-cov numpy pydantic
+
+      - name: Validate model loading
+        run: |
+          python3 << 'EOF'
+          from transformers import AutoTokenizer, AutoModelForSequenceClassification
+          import torch
+          
+          print("Loading BERT model...")
+          tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+          model = AutoModelForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=2)
+          
+          print("Testing inference...")
+          inputs = tokenizer('test', return_tensors='pt')
+          with torch.no_grad():
+              outputs = model(**inputs)
+          
+          print(f"✅ Model loaded successfully!")
+          print(f"Output shape: {outputs.logits.shape}")
+          EOF
+
+      - name: Run model tests
+        run: |
+          pip install -r services/llm-nlp-service/requirements.txt
+          pytest tests/unit/test_models.py -v --cov=services/llm-nlp-service
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./coverage.xml
+
+  threat-detection-tests:
+    name: Threat Detection Service Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          cd services/llm-nlp-service
+          pip install -r requirements.txt
+
+      - name: Test threat detection
+        run: |
+          cd services/llm-nlp-service
+          python -m pytest tests/test_threat_detector.py -v
+
+      - name: Test prompt injection detection
+        run: |
+          cd services/llm-nlp-service
+          python tests/test_prompt_injection.py
