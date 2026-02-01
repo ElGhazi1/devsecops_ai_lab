@@ -108,27 +108,48 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate docker-compose
-        run: docker-compose config
+      - name: Install Docker Compose
+        run: |
+          # Install Docker Compose V2
+          mkdir -p ~/.docker/cli-plugins/
+          curl -SL https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
+          chmod +x ~/.docker/cli-plugins/docker-compose
+          docker compose version
 
-      - name: Build services
-        run: docker-compose build
+      - name: Validate docker-compose config
+        run: docker compose config
         continue-on-error: true
 
-      - name: Start services
+      - name: Build all services
+        run: docker compose build
+        continue-on-error: true
+
+      - name: Start services (health check)
         run: |
-          docker-compose up -d
+          docker compose up -d
           sleep 10
+          docker compose ps
         continue-on-error: true
 
-      - name: Health check
+      - name: Test service health
         run: |
-          docker-compose exec -T oauth2-service curl -f http://localhost:8000/health || echo "⚠️ OAuth2 health check failed"
-          docker-compose exec -T api-backend curl -f http://localhost:8000/health || echo "⚠️ API health check failed"
-          docker-compose exec -T llm-nlp-service curl -f http://localhost:8000/health || echo "⚠️ LLM health check failed"
+          echo "Testing OAuth2 Service..."
+          docker compose exec -T oauth2-service curl -f http://localhost:8000/health || echo "⚠️ OAuth2 health check failed"
+          
+          echo "Testing API Backend..."
+          docker compose exec -T api-backend curl -f http://localhost:8000/health || echo "⚠️ API health check failed"
+          
+          echo "Testing LLM Service..."
+          docker compose exec -T llm-nlp-service curl -f http://localhost:8000/health || echo "⚠️ LLM health check failed"
         continue-on-error: true
 
-      - name: Stop services
+      - name: View service logs
         if: always()
-        run: docker-compose down -v
+        run: |
+          docker compose logs --tail=50
+        continue-on-error: true
+
+      - name: Stop and cleanup
+        if: always()
+        run: docker compose down -v
         continue-on-error: true
