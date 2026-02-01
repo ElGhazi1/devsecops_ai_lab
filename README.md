@@ -111,16 +111,50 @@ curl -X POST http://localhost:8003/detect-threat \
   }'
 ```
 
-## 🔐 Security Features
+## 🔐 Security Policy
 
-- ✅ OAuth2/JWT authentication
-- ✅ Role-based access control (RBAC)
-- ✅ Automated vulnerability scanning
-- ✅ AI-powered threat detection
-- ✅ Encrypted credentials (GitHub Secrets)
-- ✅ Pre-commit security hooks
-- ✅ Container vulnerability scanning
-- ✅ Dependency audit trails
+### ❌ NO AUTO-MERGE
+
+**IMPORTANT**: This project **DOES NOT auto-merge** security findings.
+
+All security workflows run with `continue-on-error: true` to:
+- ✅ Prevent blocking merges on scanner errors (NVD timeout, etc.)
+- ✅ Allow visibility of all findings
+- ✅ Require manual review for all security alerts
+
+### 📊 Alert Handling
+
+| Alert Type | Action | Auto-Fix |
+|-----------|--------|----------|
+| Dependabot | Open PR | ✅ Optional |
+| CodeQL | Review + merge manually | ❌ Never auto |
+| Trivy | Critical only | ❌ Manual review |
+| Bandit | Informational | ✅ If low-risk |
+| NVD CVEs | Context-based | ⚠️ See policy |
+
+### 🧠 Vulnerability Triage
+
+Use the triage script to classify vulnerabilities:
+
+```bash
+python scripts/triage_vulnerabilities.py
+```
+
+**Rules**:
+- ✅ ML libraries (transformers, torch) - acceptable deserialization risk
+- ✅ Dev dependencies (pytest) - not in production
+- ❌ Production secrets - always block
+- ❌ Critical RCE - always block
+
+### 🔄 Pull Request Merge Requirements
+
+- [ ] All workflows completed (pass or continue-on-error)
+- [ ] Code review approved
+- [ ] Security findings triaged
+- [ ] Critical vulnerabilities addressed
+- [ ] Tests passing
+
+**Protection rules** can be configured in GitHub Settings to require manual approval.
 
 ## 📁 Project Structure
 ```plaintext

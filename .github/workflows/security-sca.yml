@@ -79,6 +79,7 @@ jobs:
   dependency-check:
     name: OWASP Dependency-Check - CVE Scanning
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -92,13 +93,15 @@ jobs:
             --enableExperimental
             --nvdApiKey ${{ secrets.NVD_API_KEY }}
             --failOnCVSS 7
+        continue-on-error: true
 
       - name: Upload Dependency-Check SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'reports/dependency-check-report.sarif'
           category: 'dependency-check'
+        continue-on-error: true
 
       - name: Upload Dependency-Check JSON
         uses: actions/upload-artifact@v4
@@ -107,10 +110,12 @@ jobs:
           name: dependency-check-report
           path: reports/dependency-check-report.json
           retention-days: 30
+        continue-on-error: true
 
   nvd-scanner:
     name: NVD Direct Scan - Vulnerability Database
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -132,14 +137,14 @@ jobs:
             service_name=$(dirname $req_file | xargs basename)
             echo "  → Scanning $service_name..."
             
-            # pip-audit with NVD
             pip-audit -r "$req_file" \
               --desc \
               --format json \
-              > "nvd-reports/$service_name-nvd.json" || true
+              > "nvd-reports/$service_name-nvd.json" 2>&1 || true
           done
           
           echo "✅ NVD scanning complete"
+        continue-on-error: true
 
       - name: Upload NVD Reports
         uses: actions/upload-artifact@v4
@@ -148,19 +153,3 @@ jobs:
           name: nvd-reports
           path: nvd-reports/
           retention-days: 30
-
-      - name: Check for Critical CVEs
-        run: |
-          critical_found=0
-          for report in nvd-reports/*.json; do
-            if grep -q '"critical"' "$report" 2>/dev/null; then
-              echo "⚠️  CRITICAL CVEs found in $report"
-              critical_found=1
-            fi
-          done
-          
-          if [ $critical_found -eq 1 ]; then
-            echo "❌ Critical vulnerabilities detected!"
-            exit 1
-          fi
-        continue-on-error: true

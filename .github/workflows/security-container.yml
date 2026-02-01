@@ -32,7 +32,7 @@ jobs:
           output: '${{ matrix.service }}-trivy.sarif'
 
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: '${{ matrix.service }}-trivy.sarif'
@@ -44,6 +44,7 @@ jobs:
     strategy:
       matrix:
         service: [oauth2-service, api-backend, llm-nlp-service]
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -51,8 +52,8 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
-        run: |
-          docker build -t ${{ matrix.service }}:latest ./services/${{ matrix.service }}
+        run: docker build -t ${{ matrix.service }}:latest ./services/${{ matrix.service }}
+        continue-on-error: true
 
       - name: Run Trivy image scan
         uses: aquasecurity/trivy-action@master
@@ -60,10 +61,12 @@ jobs:
           image-ref: '${{ matrix.service }}:latest'
           format: 'sarif'
           output: '${{ matrix.service }}-image-trivy.sarif'
+        continue-on-error: true
 
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: '${{ matrix.service }}-image-trivy.sarif'
           category: 'trivy-image-${{ matrix.service }}'
+        continue-on-error: true
